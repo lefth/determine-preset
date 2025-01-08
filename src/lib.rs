@@ -35,6 +35,21 @@ fn determine_preset_from_str(input: &str) -> Result<&str, String> {
     return determine_preset(&encoder_settings);
 }
 
+pub fn closest_matches<'a>(settings: &'a HashMap<&'a str, &'a str>, presets: &'a Vec<(&'a str, HashMap<&'a str, &'a str>)>) -> Vec<(&'a str, usize)> {
+    let mut matches: Vec<_> = presets.iter().map(|(preset, preset_settings)| {
+        let match_count = settings
+            .iter()
+            .filter(|(key, value)| {
+                preset_settings.get(*key) == Some(value)
+            })
+            .count();
+        (*preset, match_count)
+    }).collect();
+    matches.sort_by_key(|(_, match_count)| *match_count);
+    matches.reverse();
+    matches
+}
+
 /// Determines which x265 preset matches the given encoder parameters.
 ///
 /// Returns:
@@ -95,7 +110,7 @@ pub fn determine_preset(settings: &HashMap<&str, &str>) -> Result<&'static str, 
 
     // Handle the results of the matching.
     match matching_presets.len() {
-        0 => Err("No matching presets found.".to_string()),
+        0 => Err(format!("No matching presets found. Closest matches:\n:{:?}", closest_matches(settings, &presets))),
         1 => Ok(matching_presets[0]),
         _ => Err(format!(
             "Multiple matching presets found: {:?}",
@@ -126,7 +141,7 @@ fn test_encoding_params() {
     let input = "ctu=32 min-cu-size=8";
     assert_eq!(determine_preset_from_str(input), Ok("superfast"));
     let input = "ctu=32 min-cu-size=8 bframes=8";
-    assert_eq!(determine_preset_from_str(input), Err("No matching presets found.".to_string()));
+    assert_eq!(determine_preset_from_str(input), Err("No matching presets found. Closest matches:\n:[(\"placebo\", 2), (\"veryslow\", 2), (\"slower\", 2), (\"superfast\", 2), (\"slow\", 1), (\"medium\", 1), (\"fast\", 1), (\"faster\", 1), (\"veryfast\", 1), (\"ultrafast\", 1)]".to_string()));
     let input = "ctu=32";
     assert_eq!(determine_preset_from_str(input), Err("Multiple matching presets found: [\"ultrafast\", \"superfast\"]".to_string()));
 }
