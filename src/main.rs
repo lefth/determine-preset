@@ -1,23 +1,25 @@
-use std::{env::args, io::{stderr, stdin, Read, Write}, process::exit};
+use std::{fs::File, io::{stderr, stdin, Read, Write}, process::exit};
 
-use determine_preset::print_preset_from_str;
+use clap::Parser;
+use determine_preset::{Cli, Determiner};
 
 fn main() {
-    let input = &mut String::new();
-    let args: Vec<_> = args().collect();
+    let cli = Cli::parse();
 
-    if args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        stderr().write_all(format!("Usage: {} reads ffmpeg encoding data in the arguments, or on STDIN if the first argument is '-'. If found, the preset is printed.\n", args[0]).as_bytes()).expect("Failed to write to stderr");
-        exit(0);
-    } else if args.iter().skip(1).next().map(|s| s == "-").unwrap_or_default() {
-        // Input string (stdin) is key=value pairs, space delimited.
-        // The format is somewhat flexible but not tested.
-        stdin().read_to_string(input).expect("Failed to read from stdin");
+    let mut buffer = String::new();
+
+    if let Some(ref input) = cli.input {
+        let mut file = match File::open(input) {
+            Ok(file) => file,
+            Err(err) => {
+                writeln!(stderr(), "Failed to open file for reading: {}\n", err).expect("Could not write to stderr");
+                exit(1)
+            }
+        };
+        file.read_to_string(&mut buffer).expect("Could not read from input file");
     } else {
-        // Read arguments into strings, and key=value pairs will be found
-        // within the strings.
-        let _ = std::mem::replace(input, args[1..].join(" "));
+        stdin().read_to_string(&mut buffer).expect("Could not read from stdin");
     }
 
-    print_preset_from_str(input);
+    Determiner::new(cli).print_preset_from_str(&buffer);
 }
