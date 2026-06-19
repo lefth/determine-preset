@@ -16,7 +16,7 @@ enum ColorMode {
 /// Read x265 encoding flags (for example from the output of `mediainfo`),
 /// and print which preset the video was encoded with.
 pub struct Cli {
-    /// Path to read the encoding flags from. If omitted, read from STDIN.
+    /// Path to read the encoding flags from. If omitted or `-`, read from STDIN.
     pub input: Option<String>,
 
     /// In the case of no match, colors are used to show close matches
