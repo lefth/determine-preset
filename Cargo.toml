@@ -7,3 +7,4 @@ edition = "2021"
 atty = "0.2.14"
 clap = { version = "4.5.26", features = ["derive"] }
 colored = "3.0.0"
+content_inspector = "0.2.4"
